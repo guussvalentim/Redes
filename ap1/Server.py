@@ -15,9 +15,11 @@ class PTATServer():
 
     def realiza_requisicao(self):
         match(self.op):
-            case 0:
+            case '0':
                 # read
-                caminho_arq = str(self.path + self.filename)
+                caminho_arq = str(self.path + "\\" + self.filename)
+
+                print(f"{caminho_arq}")
                 try:
                     with open(caminho_arq, 'r') as file:
                         
@@ -35,7 +37,7 @@ class PTATServer():
                     raise
 
 
-            case 1:
+            case '1':
                 # write
                 caminho_arq = str(self.path + self.filename)
 
@@ -49,7 +51,7 @@ class PTATServer():
                     self.body = ""
                     raise
 
-            case 2:
+            case '2':
                 # delete
                 caminho_arq = str(self.path + self.filename)
                 
@@ -63,7 +65,7 @@ class PTATServer():
                     self.body = ""
                     raise
 
-            case 3:
+            case '3':
                 # list
                 diretorio = self.path
                 try:
@@ -88,7 +90,7 @@ class PTATServer():
 
         horario = datetime.datetime.now().strftime("%H:%M:%S")
 
-        yield horario, self.op, self.path, self.code
+        return horario, self.op, self.path, self.code
 
     def enviar_resposta(self):
         self.connectionSocket.send(str(self.op).encode())
@@ -103,11 +105,14 @@ class PTATServer():
         while True:
             self.connectionSocket, self.addr = self.serverSocket.accept()
 
+            print("conexao estabelecida")
+
             try:
                 self.recebe_requisicao()
-                self.realiza_requisicao()
+                horario, op, path, code = self.realiza_requisicao()
                 self.enviar_resposta()
 
+                yield horario, op, path, code
 
             except BufferError:
                 self.code = 3
@@ -116,21 +121,29 @@ class PTATServer():
             self.connectionSocket.close()
 
     def recebe_requisicao(self):   
-        self.op = int(self.connectionSocket.recv(1).decode())
-        self.length = int(self.connectionSocket.recv(6).decode())
-        self.filename = self.connectionSocket.recv(64).decode()
-        self.path = self.connectionSocket.recv(128).decode()
-        self.body = self.connectionSocket.recv(self.length).decode()       
+        string_recebida = self.connectionSocket.recv(1000000000).decode()
+
+        print(string_recebida)
+
+        self.op, self.length, self.filename,self.path, self.body = string_recebida.split()
+
+        
+
+        print(f"op = {self.op}, length = {self.length}, filename = {self.filename}, path = {self.path}, body = {self.body}")
+               
 
 
 def main():
     server = PTATServer()
 
-    while True:
-        horario, op, path, code = server.aguarda_requisicao()
+    print("Server aberto")
 
-        print(f"{horario}, {op}, {path}, {code}")
+    for log in server.aguarda_requisicao():
+        horario, op, path, code = log
+
+        print(f"horario = {horario}, op = {op}, path = {path}, code = {code}")
+
         
 
-
+main()
         
