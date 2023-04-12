@@ -19,7 +19,6 @@ class PTATServer():
                 # read
                 caminho_arq = str(self.path + "\\" + self.filename)
 
-                print(f"{caminho_arq}")
                 try:
                     with open(caminho_arq, 'r') as file:
                         
@@ -32,14 +31,14 @@ class PTATServer():
                 except FileNotFoundError:
                     self.length = 1  
                     self.code = 2      
-                    self.body = ""
+                    self.body = "."
                     self.message = "Nome de arquivo não existente no servidor"
                     raise
 
 
             case '1':
                 # write
-                caminho_arq = str(self.path + self.filename)
+                caminho_arq = str(self.path + "\\" + self.filename)
 
                 try:
                     with open(caminho_arq, 'w') as file:
@@ -48,7 +47,7 @@ class PTATServer():
                     self.length = 1
                     self.code = 1
                     self.message = "Caminho não existente no servidor"
-                    self.body = ""
+                    self.body = "."
                     raise
 
             case '2':
@@ -86,13 +85,15 @@ class PTATServer():
                 self.length = 1
                 self.code = 4
                 self.message = "Operação inválida"
-                self.body = ""
+                self.body = "."
 
         horario = datetime.datetime.now().strftime("%H:%M:%S")
 
-        return horario, self.op, self.path, self.code
+        return f"{horario}, {self.op}, {self.path}, {self.code}"
 
     def enviar_resposta(self):
+        string_resposta = f"{op},{}"
+        
         self.connectionSocket.send(str(self.op).encode())
         self.connectionSocket.send(str(self.length).encode())
         self.connectionSocket.send(str(self.filename).encode())
@@ -105,14 +106,12 @@ class PTATServer():
         while True:
             self.connectionSocket, self.addr = self.serverSocket.accept()
 
-            print("conexao estabelecida")
-
             try:
                 self.recebe_requisicao()
-                horario, op, path, code = self.realiza_requisicao()
+                log = self.realiza_requisicao()
                 self.enviar_resposta()
 
-                yield horario, op, path, code
+                yield log
 
             except BufferError:
                 self.code = 3
@@ -125,7 +124,7 @@ class PTATServer():
 
         print(string_recebida)
 
-        self.op, self.length, self.filename,self.path, self.body = string_recebida.split()
+        self.op, self.length, self.filename, self.path, self.body = string_recebida.split(",")
 
         
 
@@ -139,9 +138,7 @@ def main():
     print("Server aberto")
 
     for log in server.aguarda_requisicao():
-        horario, op, path, code = log
-
-        print(f"horario = {horario}, op = {op}, path = {path}, code = {code}")
+        print(log)
 
         
 
