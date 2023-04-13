@@ -23,7 +23,7 @@ class PTATServer():
                     with open(caminho_arq, 'r') as file:
                         
                         self.length = os.path.getsize(caminho_arq)
-                        self.body = file.read()
+                        self.body = "Conteúdo do arquivo:\n" + file.read() + "\n"
 
                         self.code = 0
                         self.message = "Arquivo lido com sucesso"
@@ -42,6 +42,7 @@ class PTATServer():
                 print(caminho_arq)
 
                 if(os.path.exists(self.path)):
+                    self.body = self.body[1:-1]
                     with open(caminho_arq, 'w') as file:
                         file.write(self.body)
                     

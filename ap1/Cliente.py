@@ -7,9 +7,11 @@ class PTATClient():
     serverPort = 12000
     serverName = '127.0.0.1'
     
-    def __init__(self):
+    def __init__(self, verbose):
         self.clientSocket = socket(AF_INET, SOCK_STREAM)
         self.clientSocket.connect((self.serverName, self.serverPort))
+        self.verbose = verbose
+
 
     def nova_requisicao(self, req):
         lista_req = req.split()
@@ -44,7 +46,6 @@ class PTATClient():
             
                 filename = lista_pathRemoto.pop()
                 path = "\\".join(lista_pathRemoto)
-                print(f"path enviado = {path}")
 
 
             case 'del':
@@ -60,7 +61,6 @@ class PTATClient():
                 length = 1
                 body = "."
 
-                # fazer length
 
             case 'list':
                 # list caminho_remoto
@@ -90,33 +90,31 @@ class PTATClient():
 
         self.clientSocket.send(string_enviada.encode())
 
+    def recebe_respostas(self): 
+        mensagem_resposta = self.clientSocket.recv(1000000000).decode()
 
-        print("requisicoes enviadas")
-
-    def recebe_respostas(self):
-        try:
-            mensagem_resposta = self.clientSocket.recv(1000000000).decode()
-        except ConnectionAbortedError as e:
-            print(f"Error receiving response: {e}")
-
-
-        print(mensagem_resposta)
         self.op, self.length, self.filename, self.path, self.code, self.message, self.body = mensagem_resposta.split(",")
 
 
 def main():
-        while True:
-            cliente = PTATClient()
+    modo = input("Se desejar funcionar em modo verbose digite 1")
+    verbose = False
 
-            req = input("Digite uma requisição: ")
+    if(modo != 1):
+        verbose = True
+        
+    while True:
+        cliente = PTATClient(verbose)
 
-            cliente.nova_requisicao(req)
-            cliente.enviar_requisicao()
-            cliente.recebe_respostas()
+        req = input("Digite uma requisição: ")
 
-            print(f"code: {cliente.code}, message: {cliente.message}, body = {cliente.body}")
+        cliente.nova_requisicao(req)
+        cliente.enviar_requisicao()
+        cliente.recebe_respostas()
 
-            cliente.clientSocket.close()
+        print(f"code: {cliente.code}, message: {cliente.message}, body = {cliente.body}")
+
+        cliente.clientSocket.close()
 
 
 
