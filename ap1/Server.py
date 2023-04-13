@@ -19,7 +19,7 @@ class PTATServer():
                 # read
                 caminho_arq = str(self.path + "\\" + self.filename)
 
-                try:
+                if(os.path.exists(caminho_arq)):
                     with open(caminho_arq, 'r') as file:
                         
                         self.length = os.path.getsize(caminho_arq)
@@ -28,59 +28,73 @@ class PTATServer():
                         self.code = 0
                         self.message = "Arquivo lido com sucesso"
                 
-                except FileNotFoundError:
+                else:
                     self.length = 1  
                     self.code = 2      
-                    self.body = "."
                     self.message = "Nome de arquivo não existente no servidor"
-                    raise
+                    self.body = "."
 
 
             case '1':
                 # write
-                caminho_arq = str(self.path + "\\" + self.filename)
+                caminho_arq = self.path + "\\" + self.filename
 
-                try:
+                print(caminho_arq)
+
+                if(os.path.exists(self.path)):
                     with open(caminho_arq, 'w') as file:
                         file.write(self.body)
-                except FileNotFoundError:
+                    
+                    self.length = 1
+                    self.body = "."
+                    self.code = 0
+                    self.message = "Arquivo escrito com sucesso"
+
+                else:
                     self.length = 1
                     self.code = 1
                     self.message = "Caminho não existente no servidor"
                     self.body = "."
-                    raise
 
             case '2':
                 # delete
-                caminho_arq = str(self.path + self.filename)
+                caminho_arq = str(self.path + "\\" + self.filename)
                 
-                try:
+                if(os.path.exists(caminho_arq)):
                     os.remove(caminho_arq)
 
-                except FileNotFoundError:
                     self.length = 1
-                    self.code = 1
-                    self.message = "Caminho não existente no servidor"
-                    self.body = ""
-                    raise
+                    self.body = "."
+                    self.code = 0
+                    self.message = "Arquivo deletado com sucesso"
+
+                else:
+                    self.length = 1
+                    self.code = 2
+                    self.message = "Nome de arquivo não existente no servidor"
+                    self.body = "."
 
             case '3':
                 # list
                 diretorio = self.path
-                try:
+                if(os.path.exists(diretorio)):
                     arquivos_diretorio = os.listdir(diretorio)
                     
+                    body = ""
                     for arquivo in arquivos_diretorio:
-                        body = body + "\n" + arquivo
+                        body = body + arquivo + "\n"
                     
-                except FileNotFoundError:
+                    self.length = 1
+                    self.body = body
+                    self.code = 0
+                    self.message = "Arquivos listados com sucesso"
+
+                else:
                     self.length = 1
                     self.code = 1
                     self.message = "Caminho não existente no servidor"
-                    self.body = ""
-                    raise
+                    self.body = "."
                     
-
             case _:
                 self.length = 1
                 self.code = 4
@@ -92,43 +106,27 @@ class PTATServer():
         return f"{horario}, {self.op}, {self.path}, {self.code}"
 
     def enviar_resposta(self):
-        string_resposta = f"{op},{}"
+        string_resposta = f"{self.op},{self.length},{self.filename},{self.path},{self.code},{self.message},{self.body}"
         
-        self.connectionSocket.send(str(self.op).encode())
-        self.connectionSocket.send(str(self.length).encode())
-        self.connectionSocket.send(str(self.filename).encode())
-        self.connectionSocket.send(str(self.path).encode())
-        self.connectionSocket.send(str(self.code).encode())
-        self.connectionSocket.send(str(self.message).encode())
-        self.connectionSocket.send(str(self.body).encode())
+        self.connectionSocket.send(string_resposta.encode())
 
     def aguarda_requisicao(self):
         while True:
             self.connectionSocket, self.addr = self.serverSocket.accept()
 
-            try:
-                self.recebe_requisicao()
-                log = self.realiza_requisicao()
-                self.enviar_resposta()
+            self.recebe_requisicao()
+            log = self.realiza_requisicao()
+            self.enviar_resposta()
 
-                yield log
-
-            except BufferError:
-                self.code = 3
-                self.message = "Tamanho do arquivo para ser escrito maior que tamanho máximo permitido"
+            yield log
 
             self.connectionSocket.close()
 
     def recebe_requisicao(self):   
         string_recebida = self.connectionSocket.recv(1000000000).decode()
 
-        print(string_recebida)
-
         self.op, self.length, self.filename, self.path, self.body = string_recebida.split(",")
 
-        
-
-        print(f"op = {self.op}, length = {self.length}, filename = {self.filename}, path = {self.path}, body = {self.body}")
                
 
 

@@ -40,10 +40,11 @@ class PTATClient():
                 length = os.path.getsize(str_pathLocal)
 
                 str_pathRemoto = lista_req[2]
-                lista_pathRemoto = str_pathRemoto.split("/")
+                lista_pathRemoto = str_pathRemoto.split("\\")
             
                 filename = lista_pathRemoto.pop()
-                path = "\\".join(lista_path)
+                path = "\\".join(lista_pathRemoto)
+                print(f"path enviado = {path}")
 
 
             case 'del':
@@ -51,13 +52,13 @@ class PTATClient():
                 op = 2
                 str_pathRemoto = lista_req[1]
 
-                lista_pathRemoto = str_pathRemoto.split("/")
+                lista_pathRemoto = str_pathRemoto.split("\\")
                 
                 filename = lista_pathRemoto.pop()
-                path = "\\".join(lista_path)
+                path = "\\".join(lista_pathRemoto)
 
                 length = 1
-                body = ""
+                body = "."
 
                 # fazer length
 
@@ -67,15 +68,15 @@ class PTATClient():
                 path = lista_req[1]
 
                 length = 1
-                filename = ""
-                body = ""
+                filename = "."
+                body = "."
 
             case _:
                 op = "4"
                 length = "0"
-                filename = ""
-                body = ""
-                path = ""
+                filename = "."
+                body = "."
+                path = "."
 
         self.op = op
         self.length = length
@@ -93,19 +94,19 @@ class PTATClient():
         print("requisicoes enviadas")
 
     def recebe_respostas(self):
-        self.op = self.clientSocket.recv(1).decode()
-        self.length = self.clientSocket.recv(6).decode()
-        self.filename = self.clientSocket.recv(64).decode()
-        self.path = self.clientSocket.recv(128).decode()
-        self.code = self.clientSocket.recv(1).decode()
-        self.message = self.clientSocket.recv(128).decode()
-        self.body = self.clientSocket.recv(int(self.length)).decode()
+        try:
+            mensagem_resposta = self.clientSocket.recv(1000000000).decode()
+        except ConnectionAbortedError as e:
+            print(f"Error receiving response: {e}")
+
+
+        print(mensagem_resposta)
+        self.op, self.length, self.filename, self.path, self.code, self.message, self.body = mensagem_resposta.split(",")
+
 
 def main():
-        cliente = PTATClient()
-        
-
         while True:
+            cliente = PTATClient()
 
             req = input("Digite uma requisição: ")
 
@@ -115,7 +116,7 @@ def main():
 
             print(f"code: {cliente.code}, message: {cliente.message}, body = {cliente.body}")
 
-        cliente.clientSocket.close()
+            cliente.clientSocket.close()
 
 
 
